@@ -2,6 +2,8 @@
 node_modules/
 unpackage/
 dist/
+.history/
+.hbuilderx/
 
 # local env files
 .env.local
