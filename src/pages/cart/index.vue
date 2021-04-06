@@ -123,6 +123,7 @@ export default {
                 }
               })
             } catch (error) {
+              console.log(error);
               const token = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOjIzLCJpYXQiOjE1NjQ3MzAwNzksImV4cCI6MTAwMTU2NDczMDA3OH0.YPt-XeLnjV-_1ITaXGY2FhxmCe4NvXuRnRB8OMCfnPo'
             }
 
@@ -134,7 +135,7 @@ export default {
           }
         })
       } else {
-
+        console.log(1111111111111111);
       }
 
     },
