@@ -11,7 +11,7 @@
             :class="topCategoryIndex === index ? 'active' : ''" 
             v-for="(item, index) in category"
             :key="item.cat_id"
-            @click="topCategoryIndex = index"
+            @click="toggleCategory(index)"
           >{{ item.cat_name }}</text>
         </scroll-view>
       </view>
@@ -79,6 +79,10 @@ export default {
 
       }
     },
+    toggleCategory(index) {
+      console.log(index);
+      this.topCategoryIndex = index
+    }
   },
   onLoad () {
     this.getCategory()
