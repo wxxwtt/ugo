@@ -11,11 +11,11 @@
       <view class="dd">广东省广州市天河区一珠吉</view>
     </view>
     <!-- 购物车 -->
-    <view class="carts">
+    <view class="carts" v-if="cart.length">
       <view class="item">
         <!-- 店铺名称 -->
         <view class="shopname">自营商品</view>
-        <view class="goods" v-for="(good, index) in cart" :key="good.goods_id">
+        <view class="goods" v-for="good in cart" :key="good.goods_id">
           <!-- 商品图片 -->
           <image class="pic" :src="good.goods_small_logo"></image>
           <!-- 商品信息 -->
@@ -39,6 +39,7 @@
 
       </view>
     </view>
+    <view v-else style="text-align:center;color: #ddd;padding-top:50rpx">空空如也o(╥﹏╥)o, 快去选购吧</view>
     <!-- 其它 -->
     <view class="extra">
       <label class="checkall" @click="toggleAll">
@@ -99,6 +100,12 @@ export default {
       // 推荐使用wx.getUserProfile获取用户信息，开发者每次通过该接口获取用户个人信息均需用户确认
       // 开发者妥善保管用户快速填写的头像昵称，避免重复弹窗
 
+      if(!this.checkedGoods.length) {
+        return uni.showToast({
+          title: '请先选择一个商品',
+          icon: 'none'
+        })
+      }
       if (!getApp().globalData.isAuth) {
         wx.getUserProfile({
           desc: '用于完善会员资料', // 声明获取用户个人信息后的用途，后续会展示在弹窗中，请谨慎填写
@@ -141,7 +148,7 @@ export default {
     },
   },
   onLoad () {
-
+    // this.cart = uni.getStorageSync('cart') || [] //购物车数据
   }
 }
 </script>
