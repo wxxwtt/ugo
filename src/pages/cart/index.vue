@@ -15,7 +15,7 @@
       <view class="item">
         <!-- 店铺名称 -->
         <view class="shopname">自营商品</view>
-        <view class="goods" v-for="good in cart" :key="good.goods_id">
+        <view class="goods" v-for="(good, index) in cart" :key="good.goods_id">
           <!-- 商品图片 -->
           <image class="pic" :src="good.goods_small_logo"></image>
           <!-- 商品信息 -->
@@ -26,9 +26,9 @@
             </view>
             <!-- 加减 -->
             <view class="amount">
-              <text class="reduce">-</text>
-              <input type="number" value="1" class="number">
-              <text class="plus">+</text>
+              <text class="reduce" @click="minusHandle(good)">-</text>
+              <input type="number" :value="good.number" class="number" @input="onInput($event, good)">
+              <text class="plus" @click="increaseHandle(good)">+</text>
             </view>
           </view>
           <!-- 选框 -->
@@ -57,7 +57,6 @@
 
 <script>
 import request from '@/utils/request'
-
 export default {
   name: 'Cart',
   data () {
@@ -80,7 +79,8 @@ export default {
         this.totalPrice = goods.reduce((pre, next) => {
           return pre + next.goods_price * next.number
         }, 0)
-      }
+      },
+      deep: true
     }
   },
   methods: {
@@ -95,7 +95,7 @@ export default {
         item.checked = !item.checked
       })
     },
-
+    // 获取用户信息
     getUserProfile (e) {
       // 推荐使用wx.getUserProfile获取用户信息，开发者每次通过该接口获取用户个人信息均需用户确认
       // 开发者妥善保管用户快速填写的头像昵称，避免重复弹窗
@@ -146,9 +146,26 @@ export default {
       }
 
     },
+    minusHandle (good) {
+      if(good.number === 1) return;
+      good.number -- 
+    },
+    increaseHandle (good) {
+      good.number ++
+    },
+    onInput (e, good) {
+      const { value } = e.detail
+      if(parseInt(value) === 0) {
+        good.number = 1
+      }
+    }
   },
   onLoad () {
     // this.cart = uni.getStorageSync('cart') || [] //购物车数据
+  },
+  onShow () {
+    // this.cart = uni.getStorageSync('cart') || [] //购物车数据
+
   }
 }
 </script>
