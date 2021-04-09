@@ -27,29 +27,47 @@
             <!-- 加减 -->
             <view class="amount">
               <text class="reduce" @click="minusHandle(good)">-</text>
-              <input type="number" :value="good.number" class="number" @input="onInput($event, good)">
+              <input
+                type="number"
+                :value="good.number"
+                class="number"
+                @input="onInput($event, good)"
+              />
               <text class="plus" @click="increaseHandle(good)">+</text>
             </view>
           </view>
           <!-- 选框 -->
           <view class="checkbox">
-            <icon type="success" size="20" :color="good.checked ? '#ea4451' : '#ddd'" @click="toggleChecked(good.goods_id)"></icon>
+            <icon
+              type="success"
+              size="20"
+              :color="good.checked ? '#ea4451' : '#ddd'"
+              @click="toggleChecked(good.goods_id)"
+            ></icon>
           </view>
         </view>
-
       </view>
     </view>
-    <view v-else style="text-align:center;color: #ddd;padding-top:50rpx">空空如也o(╥﹏╥)o, 快去选购吧</view>
+    <view v-else style="text-align: center; color: #ddd; padding-top: 50rpx"
+      >空空如也o(╥﹏╥)o, 快去选购吧</view
+    >
     <!-- 其它 -->
     <view class="extra">
       <label class="checkall" @click="toggleAll">
-        <icon type="success" :color="checkedAllStatus ? '#ea4451' : '#ddd'" size="20"></icon>
+        <icon
+          type="success"
+          :color="checkedAllStatus ? '#ea4451' : '#ddd'"
+          size="20"
+        ></icon>
         全选
       </label>
       <view class="total">
-        合计: <text>￥</text><label>{{ totalPrice }}</label><text>.00</text>
+        合计: <text>￥</text><label>{{ totalPrice }}</label
+        ><text>.00</text>
       </view>
-      <view class="pay" @click="getUserProfile">结算({{ checkedGoods.length }})</view>
+      <view class="pay" @click="getUserProfile"
+        >结算({{ checkedGoods.length }})</view
+      >
       <!-- <button class="pay" @click="getUserProfile">结算({{ checkedGoods.length }})</button> -->
     </view>
   </view>
@@ -64,7 +82,8 @@ export default {
       cart: uni.getStorageSync('cart') || [], //购物车数据
       checkedAllStatus: false, //全部选中的状态
       totalPrice: 0,
-      userInfo: null
+      userInfo: null,
+      consignee_addr: '知春路'
     }
   },
   computed: {
@@ -106,7 +125,7 @@ export default {
           icon: 'none'
         })
       }
-      if (!getApp().globalData.isAuth) {
+      if (!uni.getStorageSync('token')) {
         wx.getUserProfile({
           desc: '用于完善会员资料', // 声明获取用户个人信息后的用途，后续会展示在弹窗中，请谨慎填写
           success: async (res) => {
@@ -116,7 +135,6 @@ export default {
             this.userInfo = res.userInfo
 
             const [err, _data] = await uni.login()
-
             try {
               const data = await request({
                 url: '/api/public/v1/users/wxlogin',
@@ -130,8 +148,9 @@ export default {
                 }
               })
             } catch (error) {
-              console.log(error);
               const token = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOjIzLCJpYXQiOjE1NjQ3MzAwNzksImV4cCI6MTAwMTU2NDczMDA3OH0.YPt-XeLnjV-_1ITaXGY2FhxmCe4NvXuRnRB8OMCfnPo'
+              uni.setStorageSync('token', token)
+              this.createOrder()
             }
 
           },
@@ -142,7 +161,7 @@ export default {
           }
         })
       } else {
-        console.log(1111111111111111);
+        this.createOrder()
       }
 
     },
@@ -158,13 +177,49 @@ export default {
       if(parseInt(value) === 0) {
         good.number = 1
       }
+    },
+    async createOrder () {
+      const { cart: goods, totalPrice, consignee_addr } = this
+      const { message } = await request({
+        url: '/api/public/v1/my/orders/create',
+        method: 'POST',
+        data: {
+          order_price: totalPrice,
+          consignee_addr,
+          order_detail: '',
+          goods: goods.map(item => ({goods_price: item.goods_price, goods_number: item.number, goods_id: item.goods_id}))
+        }
+      })
+      if(message.pay_status === '0') {
+        this.payHandle(message.order_number)
+
+      }
+    },
+    async payHandle (order_number) {
+      const { message } = await request({
+        url: '/api/public/v1/my/orders/req_unifiedorder',
+        method: 'POST',
+        data: {
+          order_number
+        }
+      })
+      const { pay } = message
+        wx.requestPayment({
+          ...pay,
+          success (data) {
+            console.log(data);
+          },
+          fail(error) {
+            console.log(error);
+          }
+        })
     }
   },
   onLoad () {
     // this.cart = uni.getStorageSync('cart') || [] //购物车数据
   },
   onShow () {
-    // this.cart = uni.getStorageSync('cart') || [] //购物车数据
+    this.cart = uni.getStorageSync('cart') || [] //购物车数据
 
   }
 }

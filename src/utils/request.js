@@ -15,7 +15,8 @@ const request = (params, loading = {}) => {
       data,
       method,
       header: {
-        'content-type': 'application/json' // 默认值
+        'content-type': 'application/json', // 默认值
+        'Authorization': uni.getStorageSync('token')
       },
       success (res) {
         uni.hideLoading()
