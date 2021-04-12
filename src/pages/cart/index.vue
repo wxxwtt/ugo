@@ -74,7 +74,7 @@
 </template>
 
 <script>
-import request from '@/utils/request'
+import { request, request2 } from '@/utils/request'
 export default {
   name: 'Cart',
   data () {
@@ -94,7 +94,7 @@ export default {
   watch: {
     checkedGoods: {
       handler (goods) {
-        this.checkedAllStatus = goods.length === this.cart.length
+        this.checkedAllStatus = goods.length === this.cart.length && this.cart.length !== 0
         this.totalPrice = goods.reduce((pre, next) => {
           return pre + next.goods_price * next.number
         }, 0)
@@ -135,9 +135,10 @@ export default {
             this.userInfo = res.userInfo
 
             const [err, _data] = await uni.login()
+            if (err) return uni.showToast({ title: '微信授权登陆失败', icon: 'none' })
             try {
-              const data = await request({
-                url: '/api/public/v1/users/wxlogin',
+              const { code, data: { token }, msg } = await request2({
+                url: '/api/wxapp/user/weixinLogin',
                 method: 'POST',
                 data: {
                   encryptedData,
@@ -147,17 +148,29 @@ export default {
                   code: _data.code
                 }
               })
+              if (code === 1) {
+                uni.setStorageSync('token', token)
+                this.createOrder()
+              } else {
+               return uni.showToast({ title: msg, icon: 'none' })
+
+              }
+              
+
             } catch (error) {
-              const token = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOjIzLCJpYXQiOjE1NjQ3MzAwNzksImV4cCI6MTAwMTU2NDczMDA3OH0.YPt-XeLnjV-_1ITaXGY2FhxmCe4NvXuRnRB8OMCfnPo'
-              uni.setStorageSync('token', token)
-              this.createOrder()
+
+              // token无效时使用下面的
+              // const token = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOjIzLCJpYXQiOjE1NjQ3MzAwNzksImV4cCI6MTAwMTU2NDczMDA3OH0.YPt-XeLnjV-_1ITaXGY2FhxmCe4NvXuRnRB8OMCfnPo'
+              // uni.setStorageSync('token', token)
+              // this.createOrder()
             }
 
           },
           fail: error => {
             getApp().globalData.isAuth = false
             uni.setStorageSync('auth', false)
-            console.log(error);
+            uni.showToast({ title: '拒绝授权, 告辞', icon: 'none' })
+
           }
         })
       } else {
@@ -179,40 +192,62 @@ export default {
       }
     },
     async createOrder () {
-      const { cart: goods, totalPrice, consignee_addr } = this
-      const { message } = await request({
-        url: '/api/public/v1/my/orders/create',
-        method: 'POST',
-        data: {
-          order_price: totalPrice,
-          consignee_addr,
-          order_detail: '',
-          goods: goods.map(item => ({goods_price: item.goods_price, goods_number: item.number, goods_id: item.goods_id}))
-        }
-      })
-      if(message.pay_status === '0') {
-        this.payHandle(message.order_number)
+      // const { cart: goods, totalPrice, consignee_addr } = this
+      // const { message } = await request({
+      //   url: '/api/public/v1/my/orders/create',
+      //   method: 'POST',
+      //   data: {
+      //     order_price: totalPrice,
+      //     consignee_addr,
+      //     order_detail: '',
+      //     goods: goods.map(item => ({goods_price: item.goods_price, goods_number: item.number, goods_id: item.goods_id}))
+      //   }
+      // })
+      // if(message.pay_status === '0') {
+      //   this.payHandle(message.order_number)
 
-      }
-    },
-    async payHandle (order_number) {
-      const { message } = await request({
-        url: '/api/public/v1/my/orders/req_unifiedorder',
+      // }
+
+      // const { cart: goods, totalPrice, consignee_addr } = this
+      const macaddr = '120191225E24', price = 0.01, second_duration = 1
+      const { code, msg, data } = await request2({
+        url: '/api/wxapp/orders/createOrder',
         method: 'POST',
         data: {
-          order_number
+         macaddr: macaddr,
+          price: price,
+          second_duration: second_duration
         }
       })
-      const { pay } = message
+      if(code === 1) {
+        this.payHandle(data)
+      } else {
+        return uni.showToast({ title: msg, icon: 'none' })
+
+      } 
+    },
+    async payHandle (pay_info) {
+      const { cart } = this
+      const { order_info, out_trade_no } = pay_info
+      const { code } = await request2({
+        url: '/api/wxapp/orders/orderPayStatus',
+        method: 'POST',
+        data: {
+          out_trade_no
+        }
+      })
+      if(code === 0) {
         wx.requestPayment({
-          ...pay,
+          ...order_info,
           success (data) {
-            console.log(data);
+            uni.setStorageSync('cart', cart.filter(goods => !goods.checked)) 
           },
           fail(error) {
             console.log(error);
           }
         })
+      }
+        
     }
   },
   onLoad () {

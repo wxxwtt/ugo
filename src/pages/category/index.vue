@@ -45,7 +45,7 @@
 
 <script>
 import search from '@/components/search';
-import request from '@/utils/request'
+import { request } from '@/utils/request'
 
 export default {
   name: 'Category',
